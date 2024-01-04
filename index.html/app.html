@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Screen and Microphone Recording</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        #videoContainer {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        video {
+            max-width: 100%;
+            height: auto;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="startRecordingBtn">Start Recording</button>
+        <button id="stopRecordingBtn" disabled>Stop Recording</button>
+    </div>
+
+    <div id="videoContainer" style="display: none;">
+        <video id="recordedVideo" controls></video>
+        <a id="downloadLink" style="display: none;" download="recorded_screen_and_audio.webm">Download Recorded Video</a>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById("startRecordingBtn");
+        const stopBtn = document.getElementById("stopRecordingBtn");
+        const videoContainer = document.getElementById("videoContainer");
+        const recordedVideo = document.getElementById("recordedVideo");
+        const downloadLink = document.getElementById("downloadLink");
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        startBtn.addEventListener("click", startRecording);
+        stopBtn.addEventListener("click", stopRecording);
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { mediaSource: "screen" },
+                    audio: true // Request microphone permission
+                });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: "video/webm" });
+                    const url = URL.createObjectURL(blob);
+                    recordedVideo.src = url;
+                    videoContainer.style.display = "block";
+                    downloadLink.href = url;
+                    downloadLink.style.display = "block";
+                    recordedChunks = [];
+                };
+
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+
+                mediaRecorder.start();
+            } catch (err) {
+                console.error("Error accessing screen and microphone: ", err);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+    </script>
+</body>
+</html>
